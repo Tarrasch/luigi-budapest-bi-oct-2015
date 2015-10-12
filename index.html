@@ -46,6 +46,27 @@ Budapest BI Forum 2015
 				</section>
 
 				<section data-markdown>
+### Who's this guy?
+
+![Devices](img/my-name-is-spotify.jpg)
+
+ * Data Engineer at Spotify
+
+ * I write code most of the time, but not for the sake of it!!!!!
+				</section>
+
+				<section data-markdown>
+### Spoti-what?
+
+![Devices](img/spotify-devices.jpg)
+
+We stream the right music for the right moment.
+
+75M+ active users. 30M+ songs. $3bn paid to rightsholders.
+
+				</section>
+
+				<section data-markdown>
 ### This talk
 
  1. Introduction to luigi + declarative programming
@@ -278,6 +299,22 @@ When you listen to music on Spotify, we report this to labels and pay them.
 				</section>
 
 				<section data-markdown>
+### How client logs are stored in Spotify
+
+When you listen to songs we save EndSong messages.
+
+```{bash}
+$ hadoop fs -ls /logs/EndSong/2015-08-27/06/
+/cleaned/endsong/2015-08-27/06/part-00000.avro
+/cleaned/endsong/2015-08-27/06/part-00001.avro
+/cleaned/endsong/2015-08-27/06/part-00002.avro
+...
+```
+
+The files are split into multiple avro files.
+				</section>
+
+				<section data-markdown>
 ### The `mv` command in unix
 
 What does this do?
@@ -301,7 +338,7 @@ Now what can go wrong? ;)
 				</section>
 
 				<section data-markdown>
-### An awesome fix I did! spotify/luigi#TODO
+### An awesome fix I did! [spotify/luigi#522](https://github.com/spotify/luigi/pull/522)
 
 ```{bash}
 $ hadoop -jar mapreduce.jar -Poutput=output-luigi-tmp-123456
@@ -310,48 +347,31 @@ $ hadoop fs -mv output-luigi-tmp-123456/* output
 ```
 
 The trick is that `hadoop fs -mkdir output` will crash if folder exist. That's
-good, so no other thread can create it. But
-...
+good, so no other thread can create it. But...
 				</section>
 
 				<section data-markdown>
-### An awesome fix I did! spotify/luigi#TODO
+Just a week or so after thanksgiving, a analyst came down to the Data
+Engineers.
 
-```{bash}
-$ hadoop -jar mapreduce.jar -Poutput=output-luigi-tmp-123456
-$ hadoop fs -mkdir output
-$ hadoop fs -mv output-luigi-tmp-123456/* output
-```
-
-The trick is that `hadoop fs -mkdir output` will crash if folder exist. That's
-good, so no other thread can create it. But
-...
-				</section>
-
-				<section data-markdown>
-Just after thanksgiving, a analyst came down to the Data Engineers.
-
-```
-Analyst:  Hey, a label reported that they received only 80% of the expected
-          revenue for last Thursday. We think there's a bug in your systems.
-Engineer: Well duh, it was Thanksgiving last Thursday. And you're supposed to
-          be the guys working with these things.
-```
-TODO FIX LAYOUT
-
-On that day, the analyst was correct.
+> Analyst:  Hey, a label reported that they received only 80% of the expected
+>           revenue for last Thursday. We think there's a bug in your systems. If
+>           labels get pissed, we will all lose our jobs!
+> 
+> Engineer: Well duuh, it was Thanksgiving last Thursday. Of course people listen
+>           to less music! And you're supposed to be the guys working with user behaviors.
 				</section>
 
 				<section data-markdown>
 ### No animals were harmed
 
-The "fix" was immediately reverted in spotify/luigi#TODO, and a proper fix was implemented
-in spotify/luigi#TODO. We used a new file system primitive
-with *rename-dont-move* semantics, also by Spotify in spotify/snakebite#TODO.
-				</section>
+The "fix" was reverted in [spotify/luigi#557], and a proper fix was implemented
+in [spotify/luigi#605]. We used a new file system primitive
+with *rename-dont-move* semantics, also by Spotify in [spotify/snakebite#128].
 
-				<section data-markdown>
-
+[spotify/luigi#557]: https://github.com/spotify/luigi/pull/557
+[spotify/luigi#605]: https://github.com/spotify/luigi/pull/605
+[spotify/snakebite#128]: https://github.com/spotify/snakebite/pull/128
 				</section>
 
 					<section>
