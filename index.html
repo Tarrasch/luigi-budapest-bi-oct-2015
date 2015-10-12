@@ -54,11 +54,15 @@ Budapest BI Forum 2015
 				</section>
 
 				<section data-markdown>
+# Introduction to luigi
+				</section>
+
+				<section data-markdown>
 ### What is luigi?
 
 [github.com/Spotify/luigi](https://github.com/Spotify/luigi)
 
-![Luigi logo](https://raw.githubusercontent.com/spotify/luigi/7a64fbbb3bfe18a49b15a38efdea1a40df32bf67/doc/luigi.png "luigi logo")
+![Luigi logo](img/luigi.png "luigi logo")
 
 A task orchestrator made in house at Spotify.
 
@@ -71,26 +75,24 @@ Open sourced late 2012.
 
 [github.com/luiti/luiti](https://github.com/luiti/luiti)
 
-![Luiti logo](https://raw.githubusercontent.com/Luiti/luiti.github.io/ef25f827fbb0d840334952ad091f6d7b16734f09/images/luiti/luiti_rectangle_logo.png)
+![Luiti logo](img/luiti_rectangle_logo.png)
 
 [github.com/intentmedia/mario](https://github.com/intentmedia/mario)
 
-![Mario logo](https://camo.githubusercontent.com/c6c20bd44bcafa1a84325cc509b5aa73f4a96b24/687474703a2f2f726f636b6574646f636b2e636f6d2f696d616765732f73637265656e73686f74732f7468756d626e61696c732f4d6172696f5f706970655f74726173685f662e706e67)
+![Mario logo](img/mario.png)
 
 				</section>
 
 				<section data-markdown>
-## More technically ..
+## A dependency graph
 
-> Conceptually, Luigi is similar to GNU Make where you have certain
-> tasks and these tasks in turn may have dependencies on other tasks.
-> There are also some similarities to Oozie and Azkaban. One major
-> difference is that Luigi is not just built specifically for Hadoop,
-> and it’s easy to extend it with other kinds of tasks
+![Mario logo](img/dependency_graph.png)
 				</section>
 
 				<section data-markdown>
 ## Task DSL
+
+It is very much like GNU Make.
 
 ```python
 class MyTask(luigi.Task):
@@ -169,12 +171,194 @@ Did not run any tasks
 ```
 				</section>
 
+				<section data-markdown>
+#### Does It feel declarative?
+
+Kind of. Despite that class statements in python are *statements*. We've made
+using luigi feel declarative.
+				</section>
+
+				<section data-markdown>
+This feels like a statement in python, not a declaration
+```python
+class MyNewClass(object):
+    sys.exit(1)
+```
+				</section>
+
+				<section data-markdown>
+So how do one achieve this declarative feel?
+```python
+class MyTask(luigi.Task):
+    def run(self): pass
+    def complete(self): pass
+    def requires(self): pass
+```
+
+``` bash
+$ luigi --module my_tasks MyTask
+```
+
+We need to bring out our Python-fu!
+				</section>
+
+				<section data-markdown>
+By having a registry!
+```python
+# from the luigi library source code:
+@six.add_metaclass(Register)
+class Task(object):
+    ...
+
+class Register(abc.ABCMeta):
+    def __new__(metacls, classname, bases, classdict):
+        """ Is called when a Task class is "declared". """
+        cls = super(Register, metacls).__new__(...)
+        metacls._reg.append(cls)
+        return cls
+```
+
+				</section>
+				<section data-markdown>
+# Building an Open Source Community
+				</section>
+
+				<section data-markdown>
+#### Current (1st oct) gh pages for orchestrators
+
+![](img/gh_luigi.png)
+![](img/gh_azkaban.png)
+![](img/gh_oozie.png)
+				</section>
+
+				<section data-markdown>
+## Observations
+
+ * Clearly, community is not built by just being an apache project.
+ * However, it flocks users and enterprise support!
+   * Both Cloudera and Hortonworks support Oozie and include it in their Hadoop
+   distribution.
+
+In Spotify, we've debated if we want to push Spotify Luigi to become Apache Luigi or not.
+				</section>
+
+				<section data-markdown>
+I guess that Luigi's community success comes from:
+
+ * Spotify being responsive in the email group and github PRs and issues
+ * It being hosted on GitHub
+ * The problem of orchestration is wide
+
+ * Luigi takes about 10 minutes to just try out.
+ * API is very intuitive.
+				</section>
+
+				<section data-markdown>
+## Significant contributions by non-Spotifiers
+
+ * 100% of the Web UI
+ * Most of the scheduling logic
+ * Edge-case handling in the worker
+ * Many storage and compute engine integrations
+   * AWS, GCP, Redshift, Elastic Search, SqlAlchemy etc.
+				</section>
+
+				<section data-markdown>
+# The Thanksgiving bug
+
+story time!
+				</section>
+
+				<section data-markdown>
+### Reporting to labels at Spotify
+
+When you listen to music on Spotify, we report this to labels and pay them.
+
+![Money overview](img/overview.png)
+				</section>
+
+				<section data-markdown>
+### The `mv` command in unix
+
+What does this do?
+
+```{bash}
+$ mkdir my_directcry
+$ mv my_file.txt my_directory
+```
+				</section>
+
+
+				<section data-markdown>
+### What luigi did
+
+```{bash}
+$ hadoop -jar mapreduce.jar -Poutput=output-luigi-tmp-123456
+$ hadoop fs -mv output-luigi-tmp-123456 output
+```
+
+Now what can go wrong? ;)
+				</section>
+
+				<section data-markdown>
+### An awesome fix I did! spotify/luigi#TODO
+
+```{bash}
+$ hadoop -jar mapreduce.jar -Poutput=output-luigi-tmp-123456
+$ hadoop fs -mkdir output
+$ hadoop fs -mv output-luigi-tmp-123456/* output
+```
+
+The trick is that `hadoop fs -mkdir output` will crash if folder exist. That's
+good, so no other thread can create it. But
+...
+				</section>
+
+				<section data-markdown>
+### An awesome fix I did! spotify/luigi#TODO
+
+```{bash}
+$ hadoop -jar mapreduce.jar -Poutput=output-luigi-tmp-123456
+$ hadoop fs -mkdir output
+$ hadoop fs -mv output-luigi-tmp-123456/* output
+```
+
+The trick is that `hadoop fs -mkdir output` will crash if folder exist. That's
+good, so no other thread can create it. But
+...
+				</section>
+
+				<section data-markdown>
+Just after thanksgiving, a analyst came down to the Data Engineers.
+
+```
+Analyst:  Hey, a label reported that they received only 80% of the expected
+          revenue for last Thursday. We think there's a bug in your systems.
+Engineer: Well duh, it was Thanksgiving last Thursday. And you're supposed to
+          be the guys working with these things.
+```
+TODO FIX LAYOUT
+
+On that day, the analyst was correct.
+				</section>
+
+				<section data-markdown>
+### No animals were harmed
+
+The "fix" was immediately reverted in spotify/luigi#TODO, and a proper fix was implemented
+in spotify/luigi#TODO. We used a new file system primitive
+with *rename-dont-move* semantics, also by Spotify in spotify/snakebite#TODO.
+				</section>
+
+				<section data-markdown>
+
+				</section>
+
 					<section>
 <pre><code></code></pre>
 <!-- I have NO IDEA why, but I need this fragment SOMEWHERE for syntax highlighting -->
 <!-- to work in markdown. super weird!! -->
 
-TODO
 
 					</section>
 
